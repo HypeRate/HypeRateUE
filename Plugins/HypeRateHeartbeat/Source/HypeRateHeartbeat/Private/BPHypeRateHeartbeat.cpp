@@ -1,52 +1,47 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#define HypeRateUseSecure1
-
 #include "BPHypeRateHeartbeat.h"
-#include "Json.h"
-#include <Runtime/Online/WebSockets/Public/WebSocketsModule.h>
-#include <Runtime/Online/WebSockets/Public/IWebSocket.h>
 
-int UBPHypeRateHeartbeat::ping_counter = 0;
+bool UBPHypeRateHeartbeat::isConnected = false;
 int UBPHypeRateHeartbeat::lastHeartBeat = 80;
+TSharedPtr<IWebSocket> UBPHypeRateHeartbeat::Socket = nullptr;
 
-void UBPHypeRateHeartbeat::HeartBeat(FString Topic, FString WebsocketKey)
+
+void UBPHypeRateHeartbeat::Connect(FString Topic, FString WebsocketKey)
 {
-    #ifdef HypeRateUseSecure
-        FString ServerURL = "wss://app.hyperate.io/socket/websocket?token=" + WebsocketKey;
-    #else
-        FString ServerURL = "ws://localhost:8080";
-    #endif
+    if (isConnected) return;
+    isConnected = true;
+    FString ServerURL = FString("wss://app.hyperate.io/socket/websocket?token=" + WebsocketKey);
 
     UE_LOG(LogTemp, Log, TEXT("[HYPERATE::DEV] URI %s"), *ServerURL);
-    const FString ServerProtocol = TEXT("");              // The WebServer protocol you want to use.
+    const FString ServerProtocol = TEXT("wss");              // The WebServer protocol you want to use.
 
-    TSharedPtr<IWebSocket> Socket = FWebSocketsModule::Get().CreateWebSocket(ServerURL, ServerProtocol);
+    Socket = FWebSocketsModule::Get().CreateWebSocket(ServerURL, ServerProtocol);
     // We bind all available events
-    Socket->OnConnected().AddLambda([Socket, Topic]() -> void {
+    Socket->OnConnected().AddLambda([&, Topic]() -> void {
         UE_LOG(LogTemp, Log, TEXT("[HYPERATE::DEV] OnConnected"));
-        Socket->Send("{\"topic\": \"hr:"+Topic+", \"event\": \"phx_join\",\"payload\": {},\"ref\": 0}");
+
+        FString s = FString("{\"topic\": \"hr:" + Topic + "\", \"event\": \"phx_join\",\"payload\": {},\"ref\": 0}");
+        Socket->Send(s);
         });
 
     Socket->OnClosed().AddLambda([](int32 StatusCode, const FString& Reason, bool bWasClean) -> void {
         UE_LOG(LogTemp, Log, TEXT("[HYPERATE::DEV] Connection to websocket server has been closed with status code: \"%d\" and reason: \"%s\"."), StatusCode, *Reason);
         });
 
-    Socket->OnMessage().AddLambda([Socket](const FString& Message) -> void {
+    Socket->OnMessage().AddLambda([&](const FString& Message) -> void {
         UE_LOG(LogTemp, Log, TEXT("[HYPERATE::DEV] OnMessage %s"), *Message);
         TSharedPtr<FJsonObject> JsonParsed;
         TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(*Message);
-        if (FJsonSerializer::Deserialize(JsonReader, JsonParsed)){
+        if (FJsonSerializer::Deserialize(JsonReader, JsonParsed)) {
+            FString event = JsonParsed->GetStringField("event");
+            if (event != "hr_update") return;
             TSharedPtr<FJsonObject> payload = JsonParsed->GetObjectField("payload");
-            FString hr = payload->GetStringField("hr");
+            int hr = payload->GetIntegerField("hr");
 
-            UE_LOG(LogTemp, Log, TEXT("[HYPERATE::DEV] OnMessage hr %s"), *hr);
-            UBPHypeRateHeartbeat::lastHeartBeat = FCString::Atoi(*hr);
-        }
-        UBPHypeRateHeartbeat::ping_counter = (UBPHypeRateHeartbeat::ping_counter + 1) % 25;
-        if (UBPHypeRateHeartbeat::ping_counter == 0) {
-            if (!Socket->IsConnected()){ return; }
-            Socket->Send("{\"topic\": \"phoenix\",\"event\": \"heartbeat\",\"payload\": {},\"ref\": 0}");
+            UE_LOG(LogTemp, Log, TEXT("[HYPERATE::DEV] OnMessage hr %s"), *FString::FromInt(hr));
+            lastHeartBeat = hr;
+            //HeartBeatUpdate(hr);
         }
         });
 
@@ -57,12 +52,27 @@ void UBPHypeRateHeartbeat::HeartBeat(FString Topic, FString WebsocketKey)
     Socket->OnConnectionError().AddLambda([](const FString& Error) -> void {
         UE_LOG(LogTemp, Log, TEXT("[HYPERATE::DEV] OnConnectionError %s"), *Error);
         });
-
-    Socket->Connect();
+    std::thread([&]() {
+        while (Socket->IsConnected()) {
+            Socket->Send("{\"topic\": \"phoenix\",\"event\": \"heartbeat\",\"payload\": {},\"ref\": 0}");
+            std::this_thread::sleep_for(std::chrono::milliseconds(20 * 1000));
+            UE_LOG(LogTemp, Log, TEXT("[HYPERATE::DEV] Ping"));
+        }
+        }).detach();
+        Socket->Connect();
 }
 
 
 int UBPHypeRateHeartbeat::GetHeartBeat()
 {
-    return UBPHypeRateHeartbeat::lastHeartBeat;
+    return lastHeartBeat;
 }
+
+void UBPHypeRateHeartbeat::Disconnect() {
+    UE_LOG(LogTemp, Log, TEXT("[HYPERATE::DEV] Closing"));
+    if (!Socket->IsConnected()) return;
+    isConnected = false;
+    Socket->Close();
+    UE_LOG(LogTemp, Log, TEXT("[HYPERATE::DEV] Closed"));
+}
+

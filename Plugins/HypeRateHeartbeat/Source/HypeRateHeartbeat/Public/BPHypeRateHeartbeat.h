@@ -3,6 +3,10 @@
 #pragma once
 
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Json.h"
+#include <Runtime/Online/WebSockets/Public/WebSocketsModule.h>
+#include <Runtime/Online/WebSockets/Public/IWebSocket.h>
+#include <thread>
 
 #include "BPHypeRateHeartbeat.generated.h"
 
@@ -15,12 +19,17 @@ class HYPERATEHEARTBEAT_API UBPHypeRateHeartbeat : public UBlueprintFunctionLibr
 	GENERATED_BODY()
 public:
 	UFUNCTION(BlueprintCallable, Category = "AAHype Rate")
-		static void HeartBeat(FString Topic, FString WebsocketKey);
+		 static void Connect(FString Topic, FString WebsocketKey);
 
 	UFUNCTION(BlueprintCallable, Category = "AAHype Rate")
 		static int GetHeartBeat();
 
+	UFUNCTION(BlueprintCallable, Category = "AAHype Rate")
+		static void Disconnect();
+
 	static int lastHeartBeat;
 
-	static int ping_counter;
+	static bool isConnected;
+
+	static TSharedPtr<IWebSocket> Socket;
 };
