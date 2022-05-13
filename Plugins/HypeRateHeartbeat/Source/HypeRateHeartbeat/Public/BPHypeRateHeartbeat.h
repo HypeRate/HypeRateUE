@@ -32,4 +32,6 @@ public:
 	static bool isConnected;
 
 	static TSharedPtr<IWebSocket> Socket;
+
+	static std::thread thr;
 };
