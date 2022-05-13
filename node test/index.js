@@ -1,7 +1,7 @@
 var WebSocketClient = require('websocket').client;
 var WebSocketServer = require('websocket').server;
 var {key,topic} = require("./config.js")
-const url = 'wss://staging.frightrate.com/socket/websocket?token='+key
+const url = 'wss://app.hyperate.io/socket/websocket?token='+key
 let n = 0;
 
 var http = require('http');

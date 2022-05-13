@@ -2,14 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Analytics.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-
-#include "HAL/Runnable.h"
-
-#include <string>
-#include <iostream>
 
 #include "BPHypeRateHeartbeat.generated.h"
 
