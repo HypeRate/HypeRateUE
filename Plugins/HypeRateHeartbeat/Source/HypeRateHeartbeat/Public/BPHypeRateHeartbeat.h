@@ -18,13 +18,13 @@ class HYPERATEHEARTBEAT_API UBPHypeRateHeartbeat : public UBlueprintFunctionLibr
 {
 	GENERATED_BODY()
 public:
-	UFUNCTION(BlueprintCallable, Category = "AAHype Rate")
+	UFUNCTION(BlueprintCallable, Category = "Hype Rate")
 		 static void Connect(FString Topic, FString WebsocketKey);
 
-	UFUNCTION(BlueprintCallable, Category = "AAHype Rate")
+	UFUNCTION(BlueprintCallable, Category = "Hype Rate")
 		static int GetHeartBeat();
 
-	UFUNCTION(BlueprintCallable, Category = "AAHype Rate")
+	UFUNCTION(BlueprintCallable, Category = "Hype Rate")
 		static void Disconnect();
 
 	static int lastHeartBeat;

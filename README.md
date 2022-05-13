@@ -1,13 +1,17 @@
 # Unofficial HypeRate Unreal Engine Plugin
-## in Development
-### Do not use!
-This Plugin is currently only working with a local proxy websocket due to naming issues between UE and openssl.
+## V 1.0
 
-The provided proxy Server should work. You just need to update the `config.example.js` to `config.js` with needed information.
+To connect to hyperate use `Connect` from `Hype Rate` Action.
+Give provided Topic & Websocket Key.
+Recommended from `Event BeginPlay`
+![connect](https://github.com/ReDiGermany/HypeRateUE/blob/main/gfx/connect.png?raw=true)
+
+To disconnect to hyperate use `Disconnect` from `Hype Rate` Action.
+Recommended from `Event End Play`
+![disconnect](https://github.com/ReDiGermany/HypeRateUE/blob/main/gfx/disconnect.png?raw=true)
+
+To recieve heartbeat use `Get Heart Beat`.
+Recommended from `Event Tick` - you should cache variable as shown.
+![log](https://github.com/ReDiGermany/HypeRateUE/blob/main/gfx/log.png?raw=true)
 
 For more information visit [https://www.hyperate.io/](https://www.hyperate.io/) or their [Discord](https://discord.gg/75jcqvuHAH)
-
-## Known issues
-- wss not working due to naming issues between openssl and unreal engine
-- Server not disconnecting after stopping the game
-- Server not reconnecting after failed attempt/connection lost
